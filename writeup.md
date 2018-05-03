@@ -24,9 +24,9 @@ The goals / steps of this project are the following:
 
 #### 1. Briefly state how you computed the camera matrix and distortion coefficients. Provide an example of a distortion corrected calibration image.
 
-The code for this step is contained in the code cell In[2] of the Jupiter notebook located in 'Advanced_Lane_Lines.ipynb '.  
+The code for this step is contained in the code cell In[2] of the Jupiter notebook located in 'Advanced_Lane_Lines.ipynb '. 
 
-I start by preparing "object points", which will be the (x, y, z) coordinates of the chessboard corners in the world. Here I am assuming the chessboard is fixed on the (x, y) plane at z=0, such that the object points are the same for each calibration image.  Thus, `objp` is just a replicated array of coordinates, and `objpoints` will be appended with a copy of it every time I successfully detect all chessboard corners in a test image.  `imgpoints` will be appended with the (x, y) pixel position of each of the corners in the image plane with each successful chessboard detection.  
+I start by preparing "object points", which will be the (x, y, z) coordinates of the chessboard corners in the world. Here I am assuming the chessboard is fixed on the (x, y) plane at z=0, such that the object points are the same for each calibration image.  Thus, `objp` is just a replicated array of coordinates, and `objpoints` will be appended with a copy of it every time I successfully detect all chessboard corners in a test image.  `imgpoints` will be appended with the (x, y) pixel position of each of the corners in the image plane with each successful chessboard detection. 
 
 I then used the output `objpoints` and `imgpoints` to compute the camera calibration and distortion coefficients using the `cv2.calibrateCamera()` function.  I applied this distortion correction to the test image using the `cv2.undistort()` function and obtained this result: 
 ![](writeup_images/undistortion0.png)
@@ -64,24 +64,20 @@ Here's an example of my output for this step.  (note: this is not actually from 
 The code for my perspective transform includes a function called `warp_image()`, which appears in code cell In[6] in the file `Advanced_Lane_Lines.ipynb`.  The `warp_image()` function takes as inputs an image (`img`), with defined (`src`) and destination (`dst`) points.  I chose the hardcode the source and destination points in the following manner:
 
 ```python
-src = np.float32([[585,460],
-                  [203,720],
-                  [1127,720],
-                  [695,460]])
-offset = 320
-dst = np.float32([[offset,0],
-                  [offset,img_size[1]],
-                  [img_size[0]-offset,img_size[1]],
+corner = np.float32([[582,460],[210,720],[1123,720],[700,460]])
+offset = 340
+dst = np.float32([[offset,0], [offset,img_size[1]], \
+            [img_size[0]-offset,img_size[1]],
 ```
 
 This resulted in the following source and destination points:
 
 | Source        | Destination   | 
 |:-------------:|:-------------:| 
-| 585, 460      | 320, 0        | 
-| 203, 720      | 320, 720      |
-| 1127, 720     | 960, 720      |
-| 695, 460      | 960, 0        |
+| 582, 460      | 340, 0       | 
+| 210, 720      | 340, 720      |
+| 1123, 720     | 940, 720      |
+| 700, 460      | 940, 0       |
 
 I verified that my perspective transform was working as expected by drawing the `src` and `dst` points onto a test image and its warped counterpart to verify that the lines appear parallel in the warped image.
 
@@ -91,13 +87,23 @@ I verified that my perspective transform was working as expected by drawing the 
 
 #### 4. Describe how (and identify where in your code) you identified lane-line pixels and fit their positions with a polynomial?
 
-Then I used the slicing windows and histogram to find the lane lines and then fit lane lines with a 2nd order polynomial. I did this in code cell In[8] in `Advanced_Lane_Lines.ipynb`.
 
+Frst, I used the slicing windows and histogram to find the lane lines and then fit lane lines with a 2nd order polynomial.
+I did this in code cell In[8] in with function `lane_lines_detections()` in `Advanced_Lane_Lines.ipynb`.
 ![](writeup_images/poly.png)
+
+And if the lane is detected, I skip the sliding windows step, I search in a margin around the previous line position.
+I implement thsi in code cell In[10] in with the function `lane_line_detectation_with_pre_fit()` in `Advanced_Lane_Lines.ipynb`.
+![](writeup_images/poly2.png)
+
+I used the Sanity Check in code cell In[14][15] to determin, if the lane is detected. The idea is that, if the distance between left and right line on the top and bottom of lane lines are not around  700 pixel or the difference of each line is too big, than the lane-line detected failed. The previous fit would be used.
+I also used smoothing (average value) whenn fit is updated.
+
+
 
 #### 5. Describe how (and identify where in your code) you calculated the radius of curvature of the lane and the position of the vehicle with respect to the center.
 
-I did this in code cell In[10] in `Advanced_Lane_Lines.ipynb`
+I did this in code cell In[12] in `Advanced_Lane_Lines.ipynb`, it's called in code cell In[13] in the function ` draw_lines_on_image()`
 
 Calculate the curvature of lanes:
 
@@ -155,6 +161,8 @@ The pipeline consists of the following steps:
 - using the combined threshold to get binary images
 - Perspective transformation
 - Find lane lines 
+- Sanity Check & update fit
+- Draw lines on the image
 
 Here's a [link to my video result](output_images/project_video_output.mp4)
 
